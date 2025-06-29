@@ -1,0 +1,15 @@
+streamlit
+requests
+pandas
+flask
+flask_cors
+scikit-learn
+matplotlib
+joblib
+seaborn
+datetime
+geopy
+numpy
+plotly
+folium
+streamlit-folium
