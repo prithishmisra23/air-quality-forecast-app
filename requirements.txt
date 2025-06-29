@@ -11,3 +11,4 @@ datetime
 geopy
 numpy
 plotly
+folium
