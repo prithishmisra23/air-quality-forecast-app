@@ -46,6 +46,21 @@ def get_history():
         history.append({'date': date, 'aqi': aqi_value})
     history.reverse()
     return jsonify({'history': history})
+    from joblib import load  # Add this at the top if not already
+
+@app.route('/api/predict', methods=['POST'])
+def predict_aqi():
+    try:
+        data = request.get_json()
+        pm2_5 = data.get('pm2_5', 50)
+        humidity = data.get('humidity', 70)
+        temp = data.get('temp', 30)
+
+        model = load('model/model.pkl')
+        prediction = model.predict([[pm2_5, humidity, temp]])[0]
+        return jsonify({'predicted_aqi': round(prediction)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=5000)
