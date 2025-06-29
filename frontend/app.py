@@ -18,7 +18,7 @@ PRESET_CITIES = {
 }
 
 # Load ML model
-model = joblib.load('../model/model.pkl')
+model = joblib.load('model.pkl')
 
 # Predefined city options
 cities = {
