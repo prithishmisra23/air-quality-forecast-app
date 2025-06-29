@@ -12,3 +12,4 @@ numpy
 plotly
 folium
 streamlit-folium
+flask_cors
