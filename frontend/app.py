@@ -69,7 +69,7 @@ st_folium(m, width=700, height=500)
 
 if st.button("📡 Fetch AQI & Forecast"):
     try:
-        res = requests.get(f"http://localhost:5000/api/aqi?lat={lat}&lon={lon}")
+        res = requests.get(f"https://air-quality-backend-7ys9.onrender.com/api/aqi?lat={lat}&lon={lon}")
         res.raise_for_status()
         data = res.json()
 
@@ -113,7 +113,7 @@ if st.button("📡 Fetch AQI & Forecast"):
 
 st.subheader("📉 Past 7 Days AQI Trend")
 
-history_res = requests.get(f"http://localhost:5000/api/history?lat={lat}&lon={lon}")
+history_res = requests.get(f"https://air-quality-backend-7ys9.onrender.com/api/history?lat={lat}&lon={lon}")
 history_data = history_res.json()["history"]
 
 dates = [item['date'] for item in history_data]
