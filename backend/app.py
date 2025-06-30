@@ -26,8 +26,14 @@ def get_aqi():
         geo_response.raise_for_status()
         geo_data = geo_response.json()
 
-        if not geo_data or not isinstance(geo_data, list) or 'lat' not in geo_data[0]:
-            return jsonify({'error': f'City "{city}" not found'}), 404
+    if not geo_data or not isinstance(geo_data, list) or len(geo_data) == 0:
+    return jsonify({'error': f'City "{city}" not found'}), 404
+
+    lat = geo_data[0].get('lat')
+    lon = geo_data[0].get('lon')
+
+    if lat is None or lon is None:
+    return jsonify({'error': f'Coordinates for "{city}" not found'}), 404
 
         lat = geo_data[0]['lat']
         lon = geo_data[0]['lon']
