@@ -7,71 +7,64 @@ from streamlit_folium import st_folium
 
 st.set_page_config(page_title="Air Quality Visualizer", layout="wide")
 
-st.title("🌍 Air Quality Visualizer and Forecast")
-city = st.text_input("Enter your City Name", "Delhi")
+st.title("🌍 Air Quality Visualizer & Forecast App")
+city = st.text_input("Enter a City Name", "Delhi")
 
 backend_url = "https://air-quality-backend-7ys9.onrender.com"
 
-if st.button("🔍 Get AQI"):
+# ---------- AQI Section ----------
+if st.button("🔍 Get Real-time AQI"):
     try:
-        aqi_response = requests.get(f"{backend_url}/api/aqi", params={"city": city})
-        aqi_response.raise_for_status()
-        aqi_data = aqi_response.json()
+        response = requests.get(f"{backend_url}/api/aqi", params={"city": city})
+        response.raise_for_status()
+        data = response.json()
 
-        st.subheader(f"📌 AQI for {city.capitalize()}")
-        st.metric("AQI Value", aqi_data['aqi'])
-        st.json(aqi_data['components'])
+        st.subheader(f"📌 AQI in {city.title()}")
+        st.metric("AQI Value", data['aqi'])
+        st.json(data['components'])
 
-        # Show coordinates
-        lat = aqi_data['lat']
-        lon = aqi_data['lon']
-        st.write(f"📍 Coordinates of {city}: {lat}, {lon}")
+        st.subheader("📍 Location on Map")
+        map_ = folium.Map(location=[data['lat'], data['lon']], zoom_start=10)
+        folium.Marker([data['lat'], data['lon']], popup=city.title(), tooltip="City").add_to(map_)
+        st_folium(map_, width=700)
 
-        # Show map
-        m = folium.Map(location=[lat, lon], zoom_start=10)
-        folium.Marker([lat, lon], popup=city).add_to(m)
-        st_folium(m, width=700, height=500)
-
-    except requests.exceptions.HTTPError as e:
-        st.error(f"HTTP error occurred: {e}")
-    except requests.exceptions.RequestException as e:
-        st.error(f"Request error: {e}")
     except Exception as e:
-        st.error(f"Unexpected error: {e}")
+        st.error(f"Failed to fetch AQI data: {e}")
 
-
-if st.button("📈 Show 7-day Historical Data"):
+# ---------- History Section ----------
+if st.button("📈 Show 7-Day AQI History"):
     try:
-        history_response = requests.get(f"{backend_url}/api/history")
-        history_response.raise_for_status()
-        history_data = history_response.json()['history']
+        response = requests.get(f"{backend_url}/api/history", params={"city": city})
+        response.raise_for_status()
+        history_data = response.json()['history']
 
-        df_history = pd.DataFrame(history_data)
-        fig = px.line(df_history, x="date", y="aqi", title="7-Day AQI History", markers=True)
+        df = pd.DataFrame(history_data)
+        fig = px.line(df, x='date', y='aqi', markers=True, title="7-Day AQI Trend")
         st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.error(f"Error loading history: {e}")
+        st.error(f"Failed to load history: {e}")
 
+# ---------- Prediction Section ----------
 st.markdown("---")
-st.header("🧠 Predict AQI with Your Own Values")
+st.header("🧠 Predict AQI with Your Inputs")
 
-pm25 = st.slider("PM2.5 Level", 0, 500, 50)
-humidity = st.slider("Humidity (%)", 0, 100, 60)
-temp = st.slider("Temperature (°C)", -10, 50, 30)
+col1, col2, col3 = st.columns(3)
+with col1:
+    pm2_5 = st.slider("PM2.5 Level", 0, 500, 60)
+with col2:
+    humidity = st.slider("Humidity (%)", 0, 100, 70)
+with col3:
+    temp = st.slider("Temperature (°C)", -10, 50, 30)
 
 if st.button("📊 Predict AQI"):
     try:
-        payload = {
-            "pm2_5": pm25,
-            "humidity": humidity,
-            "temp": temp
-        }
-        predict_response = requests.post(f"{backend_url}/api/predict", json=payload)
-        predict_response.raise_for_status()
-        prediction = predict_response.json()
+        payload = {"pm2_5": pm2_5, "humidity": humidity, "temp": temp}
+        response = requests.post(f"{backend_url}/api/predict", json=payload)
+        response.raise_for_status()
+        prediction = response.json()
 
-        st.success(f"Predicted AQI: {prediction['predicted_aqi']}")
+        st.success(f"✅ Predicted AQI: {prediction['predicted_aqi']}")
 
     except Exception as e:
         st.error(f"Prediction failed: {e}")
