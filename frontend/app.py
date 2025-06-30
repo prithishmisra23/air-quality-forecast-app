@@ -83,15 +83,24 @@ with col2:
 with col3:
     temp = st.slider("Temperature (°C)", -10, 50, 30)
 
+if "aqi_prediction" not in st.session_state:
+    st.session_state.aqi_prediction = None
+
 if st.button("📊 Predict AQI (AI Model)"):
     try:
         payload = {"pm2_5": pm25, "humidity": humidity, "temp": temp}
         pred_response = requests.post(f"{backend_url}/api/predict", json=payload)
         pred_response.raise_for_status()
         pred = pred_response.json()
-        st.success(f"Predicted AQI: {pred['predicted_aqi']}")
+        st.session_state.aqi_prediction = f"Predicted AQI: {pred['predicted_aqi']}"
     except Exception as e:
-        st.error(f"Prediction failed: {e}")
+        st.session_state.aqi_prediction = f"Prediction failed: {e}"
+
+if st.session_state.aqi_prediction:
+    if "Predicted AQI" in st.session_state.aqi_prediction:
+        st.success(st.session_state.aqi_prediction)
+    else:
+        st.error(st.session_state.aqi_prediction)
 
 st.markdown("---")
-st.caption("Built with 💡 Streamlit + Flask + Scikit-learn | Powered by Open Source APIs")
+st.caption("Built with 💡 Streamlit + Flask + Scikit-learn | Powered by Open Sourc
