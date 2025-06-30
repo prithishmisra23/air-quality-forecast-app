@@ -11,7 +11,7 @@ CORS(app)
 API_KEY = "b48771cc44eb3963dc408c3759655e2a"
 
 # Load model once at startup
-model = load('model/model.pkl')
+model = load('model.pkl')
 
 @app.route('/api/aqi', methods=['GET'])
 def get_aqi():
