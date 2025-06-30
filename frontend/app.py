@@ -19,6 +19,15 @@ if st.button("🔍 Get AQI"):
         st.subheader(f"📌 AQI for {city.capitalize()}")
         st.metric("AQI Value", aqi_data['aqi'])
         st.json(aqi_data['components'])
+        
+        if 'lat' in aqi_data and 'lon' in aqi_data:
+            st.subheader("📍 Location on Map")
+            st.map(pd.DataFrame([{
+                'lat': aqi_data['lat'],
+                'lon': aqi_data['lon']
+            }]))
+        else:
+            st.warning("Map location data not available.")
 
     except requests.exceptions.HTTPError as e:
         st.error(f"HTTP error occurred: {e}")
