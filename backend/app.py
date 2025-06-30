@@ -13,12 +13,13 @@ API_KEY = "b48771cc44eb3963dc408c3759655e2a"
 # Load model once at startup
 model = load('model.pkl')
 
-    @app.route('/api/aqi', methods=['GET'])
-    def get_aqi():
+
+@app.route('/api/aqi', methods=['GET'])
+def get_aqi():
     city = request.args.get('city')
 
     if not city:
-    return jsonify({'error': 'City parameter is missing'}), 400
+        return jsonify({'error': 'City parameter is missing'}), 400
 
     try:
         geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={API_KEY}"
@@ -38,20 +39,7 @@ model = load('model.pkl')
 
         data = response.json()
         if 'list' not in data or not data['list']:
-        return jsonify({'error': 'Invalid API response structure'}), 500
-
-        components = data['list'][0]['components']
-        aqi = data['list'][0]['main']['aqi']
-
-        return jsonify({'aqi': aqi, 'components': components})
-
-    except requests.exceptions.RequestException as e:
-        print("❌ Network/API error:", str(e))
-        return jsonify({'error': 'Failed to fetch AQI data', 'details': str(e)}), 500
-    except Exception as e:
-        print("❌ Unexpected error:", str(e))
-        return jsonify({'error': 'Internal error', 'details': str(e)}), 500
-
+            return jsonify({'error': 'Invalid API response structure'}), 500
 
         components = data['list'][0]['components']
         aqi = data['list'][0]['main']['aqi']
@@ -77,6 +65,7 @@ def get_history():
     history.reverse()
     return jsonify({'history': history})
 
+
 @app.route('/api/predict', methods=['POST'])
 def predict_aqi():
     try:
@@ -91,6 +80,7 @@ def predict_aqi():
     except Exception as e:
         print("❌ Prediction error:", str(e))
         return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=5000)
