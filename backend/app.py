@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Load trained model
-model = joblib.load("model/aqi_model.pkl")
+model = joblib.load("model.pkl")
 
 # Your OpenWeatherMap API key
 API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"
