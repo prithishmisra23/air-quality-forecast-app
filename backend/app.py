@@ -1,49 +1,94 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import requests
+from geopy.geocoders import Nominatim
+from datetime import datetime, timedelta
 import pandas as pd
 import joblib
-import os
+import numpy as np
 
 app = Flask(__name__)
 CORS(app)
 
-# Load the model
-try:
-    model = joblib.load("model.pkl")
-    print("✅ Model loaded successfully")
-except Exception as e:
-    print("❌ Error loading model:", e)
-    model = None
+API_KEY = "b48771cc44eb3963dc408c3759655e2a"
 
-@app.route("/", methods=["GET"])
-def index():
-    return jsonify({"message": "Welcome to the Air Quality Prediction API"}), 200
+# Load ML model
+model = joblib.load("model.pkl")
 
+# AQI Route
+@app.route("/api/aqi", methods=["GET"])
+def get_aqi():
+    city = request.args.get("city")
+    lat = request.args.get("lat")
+    lon = request.args.get("lon")
+
+    if city:
+        geolocator = Nominatim(user_agent="aqi_app")
+        location = geolocator.geocode(city)
+        if not location:
+            return jsonify({"error": "Invalid city"}), 404
+        lat, lon = location.latitude, location.longitude
+
+    if lat and lon:
+        url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
+        res = requests.get(url)
+        data = res.json()
+
+        if "list" not in data or not data["list"]:
+            return jsonify({"error": "No AQI data available"}), 404
+
+        components = data["list"][0]["components"]
+        aqi = data["list"][0]["main"]["aqi"]
+
+        return jsonify({
+            "lat": float(lat),
+            "lon": float(lon),
+            "aqi": aqi,
+            "components": components
+        })
+    else:
+        return jsonify({"error": "Missing location parameters"}), 400
+
+# History Route
+@app.route("/api/history", methods=["GET"])
+def get_history():
+    city = request.args.get("city", "Delhi")
+    geolocator = Nominatim(user_agent="aqi_app")
+    location = geolocator.geocode(city)
+    if not location:
+        return jsonify({"error": "Invalid city"}), 404
+
+    lat, lon = location.latitude, location.longitude
+    history_data = []
+
+    for i in range(7):
+        dt = int((datetime.utcnow() - timedelta(days=i+1)).timestamp())
+        url = f"http://api.openweathermap.org/data/2.5/air_pollution/history?lat={lat}&lon={lon}&start={dt}&end={dt + 3600}&appid={API_KEY}"
+        res = requests.get(url)
+        data = res.json()
+
+        if "list" in data and data["list"]:
+            aqi_val = data["list"][0]["main"]["aqi"]
+            history_data.append({"date": (datetime.utcnow() - timedelta(days=i+1)).strftime("%Y-%m-%d"), "aqi": aqi_val})
+
+    return jsonify(history_data[::-1])
+
+# Prediction Route
 @app.route("/api/predict", methods=["POST"])
-def predict():
-    if model is None:
-        return jsonify({"error": "Model not loaded"}), 500
-
+def predict_aqi():
     try:
-        data = request.get_json()
-        print("📩 Received data:", data)
-
-        pm25 = float(data.get("pm2_5", 50))
-        humidity = float(data.get("humidity", 50))
-        temp = float(data.get("temp", 25))
-
-        input_df = pd.DataFrame([[pm25, humidity, temp]], columns=["pm2_5", "humidity", "temp"])
-        print("📊 Input for model:", input_df)
-
-        prediction = model.predict(input_df)[0]
-        print("✅ Prediction:", prediction)
-
-        return jsonify({"predicted_aqi": round(prediction, 2)}), 200
-
+        input_data = request.json
+        values = [input_data[col] for col in ['co', 'no', 'no2', 'o3', 'so2', 'pm2_5', 'pm10', 'nh3']]
+        prediction = model.predict([values])[0]
+        return jsonify({"predicted_aqi": int(prediction)})
     except Exception as e:
-        print("❌ Prediction error:", e)
         return jsonify({"error": str(e)}), 500
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+import os
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))  # Render assigns the port
+    app.run(host='0.0.0.0', port=port, debug=True)
+
+
+
