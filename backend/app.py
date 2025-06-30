@@ -101,33 +101,35 @@ def get_history():
 
     return jsonify(history_data[::-1])  # Oldest to newest
 
-# AQI Prediction Endpoint
-@app.route("/api/predict", methods=["POST"])
-def predict_aqi():
-    if model is None:
-        return jsonify({"error": "Model not loaded."}), 503
-
+@app.route('/api/predict', methods=['POST'])
+def predict():
     try:
-        input_data = request.json
-        required_fields = ['co', 'no', 'no2', 'o3', 'so2', 'pm2_5', 'pm10', 'nh3']
-        values = []
+        data = request.get_json()
+        
+        # Check if data exists
+        if not data:
+            return jsonify({'error': 'No input data received'}), 400
 
-        for field in required_fields:
-            if field not in input_data:
-                return jsonify({"error": f"Missing input: {field}"}), 400
-            try:
-                values.append(float(input_data[field]))
-            except ValueError:
-                return jsonify({"error": f"Invalid value for {field}: must be a number"}), 400
+        # Extract features in correct order
+        features = [
+            data.get('PM2.5', 0),
+            data.get('PM10', 0),
+            data.get('NO', 0),
+            data.get('NO2', 0),
+            data.get('NH3', 0),
+            data.get('CO', 0),
+            data.get('SO2', 0),
+            data.get('O3', 0)
+        ]
 
-        input_df = pd.DataFrame([values], columns=required_fields)
-        prediction = model.predict(input_df)[0]
-        return jsonify({"predicted_aqi": int(prediction)})
+        # Load model and predict
+        model = joblib.load('aqi_model.pkl')
+        prediction = model.predict([features])[0]
+        return jsonify({'aqi': float(prediction)})
 
     except Exception as e:
-        print(f"Prediction error: {e}")
-        return jsonify({"error": f"Server error: {e}"}), 500
-
+        return jsonify({'error': str(e)}), 500
+        
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
