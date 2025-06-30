@@ -103,4 +103,5 @@ if st.session_state.aqi_prediction:
         st.error(st.session_state.aqi_prediction)
 
 st.markdown("---")
-st.caption("Built with 💡 Streamlit + Flask + Scikit-learn | Powered by Open Sourc
+st.caption("Built with 💡 Streamlit + Flask + Scikit-learn | Powered by Open Source APIs")
+
