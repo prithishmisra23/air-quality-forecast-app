@@ -12,6 +12,8 @@ backend_url = "https://air-quality-backend-7ys9.onrender.com"
 
 if st.button("🔍 Get AQI"):
     try:
+        if st.button("🔍 Get AQI"):
+    try:
         aqi_response = requests.get(f"{backend_url}/api/aqi", params={"city": city})
         aqi_response.raise_for_status()
         aqi_data = aqi_response.json()
@@ -19,15 +21,16 @@ if st.button("🔍 Get AQI"):
         st.subheader(f"📌 AQI for {city.capitalize()}")
         st.metric("AQI Value", aqi_data['aqi'])
         st.json(aqi_data['components'])
-        
-        if 'lat' in aqi_data and 'lon' in aqi_data:
-            st.subheader("📍 Location on Map")
-            st.map(pd.DataFrame([{
-                'lat': aqi_data['lat'],
-                'lon': aqi_data['lon']
-            }]))
-        else:
-            st.warning("Map location data not available.")
+
+        # Show coordinates
+        lat = aqi_data['lat']
+        lon = aqi_data['lon']
+        st.write(f"📍 Coordinates of {city}: {lat}, {lon}")
+
+        # Show map
+        m = folium.Map(location=[lat, lon], zoom_start=10)
+        folium.Marker([lat, lon], popup=city).add_to(m)
+        st_folium(m, width=700, height=500)
 
     except requests.exceptions.HTTPError as e:
         st.error(f"HTTP error occurred: {e}")
