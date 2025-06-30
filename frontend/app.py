@@ -1,5 +1,6 @@
 import plotly.graph_objects as go
 import os
+import requests
 import streamlit as st
 import requests
 import joblib
@@ -46,17 +47,37 @@ city = "Delhi"
 
 st.markdown("## 📍 Select location")
 
-location_mode = st.radio("Choose location input mode:", ["Select city", "Enter coordinates manually"])
+location_mode = st.radio(
+    "Choose location input mode:",
+    ["Select city", "Enter coordinates manually", "Search city name"]
+)
 
 if location_mode == "Select city":
     city = st.selectbox("Select a city:", list(PRESET_CITIES.keys()))
     lat, lon = PRESET_CITIES[city]
     st.success(f"Selected city: {city} ({lat}, {lon})")
-else:
+
+elif location_mode == "Enter coordinates manually":
     lat = st.number_input("Latitude", format="%.6f")
     lon = st.number_input("Longitude", format="%.6f")
     city = "Custom Location"
     st.success(f"Custom coordinates: {lat}, {lon}")
+
+elif location_mode == "Search city name":
+    city_name_input = st.text_input("Enter city name:")
+    if st.button("Search Location"):
+        geo_res = requests.get(
+            f"https://nominatim.openstreetmap.org/search?city={city_name_input}&format=json"
+        )
+        if geo_res.status_code == 200 and geo_res.json():
+            geo_data = geo_res.json()[0]
+            lat = float(geo_data['lat'])
+            lon = float(geo_data['lon'])
+            city = city_name_input.title()
+            st.success(f"Location found: {city} ({lat}, {lon})")
+        else:
+            st.error("City not found. Try again.")
+
 
 # Display selected coordinates
 st.write(f"📍 Coordinates of {city}: {lat}, {lon}")
@@ -81,8 +102,9 @@ if st.button("📡 Fetch AQI & Forecast"):
 
         st.subheader("📈 Forecasted AQI (Next Hour)")
         st.subheader("🌡️ Enter Weather Info (Optional)")
-        temp = st.number_input("Temperature (°C)", min_value=-10.0, max_value=50.0, value=30.0)
-        humidity = st.number_input("Humidity (%)", min_value=0.0, max_value=100.0, value=50.0)
+        temp = st.number_input("Temperature (°C)", min_value=-10.0, max_value=50.0, value=30.0, help="Enter temperature or leave default")
+        humidity = st.number_input("Humidity (%)", min_value=0.0, max_value=100.0, value=50.0, help="Enter humidity or leave default")
+
 
         input_data = [[data['components']['pm2_5'], humidity, temp]]  # Now dynamic
 
