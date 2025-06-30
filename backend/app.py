@@ -4,60 +4,60 @@ import requests
 import datetime
 import random
 from joblib import load
+from geopy.geocoders import Nominatim
 
 app = Flask(__name__)
 CORS(app)
 
 API_KEY = "b48771cc44eb3963dc408c3759655e2a"
 
-# Load model once at startup
+# Load trained model
 model = load('model.pkl')
 
 @app.route('/api/aqi', methods=['GET'])
 def get_aqi():
     city = request.args.get('city')
     if not city:
-        return jsonify({'error': 'City is required'}), 400
+        return jsonify({'error': 'City parameter missing'}), 400
 
-    # Geocode to get coordinates
-    location = geolocator.geocode(city)
-    if not location:
-        return jsonify({'error': 'Invalid city name'}), 400
+    try:
+        geolocator = Nominatim(user_agent="aqi_app")
+        location = geolocator.geocode(city)
+        if not location:
+            return jsonify({'error': f'City "{city}" not found'}), 404
 
-    lat = location.latitude
-    lon = location.longitude
+        lat = location.latitude
+        lon = location.longitude
 
-    # Fetch AQI data using coordinates
-    aqi_data = fetch_current_aqi(lat, lon)
-    if not aqi_data:
-        return jsonify({'error': 'Could not fetch AQI data'}), 500
+        url = f"https://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
+        response = requests.get(url)
+        response.raise_for_status()
 
-    return jsonify({
-        'aqi': aqi_data['aqi'],
-        'components': aqi_data['components'],
-        'lat': lat,
-        'lon': lon
-    })
+        data = response.json()
+        aqi = data['list'][0]['main']['aqi']
+        components = data['list'][0]['components']
 
-   except requests.exceptions.RequestException as e:
-        print("❌ Network/API error:", str(e))
-        return jsonify({'error': 'Failed to fetch AQI data', 'details': str(e)}), 500
+        return jsonify({
+            'aqi': aqi,
+            'components': components,
+            'lat': lat,
+            'lon': lon
+        })
 
     except Exception as e:
-        print("❌ Unexpected error:", str(e))
-        return jsonify({'error': 'Internal error', 'details': str(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
-    history = []
+    city = request.args.get('city', 'Delhi')
     today = datetime.datetime.today()
+    history = []
     for i in range(7):
         date = (today - datetime.timedelta(days=i)).strftime('%Y-%m-%d')
         aqi_value = random.randint(50, 200)
         history.append({'date': date, 'aqi': aqi_value})
     history.reverse()
     return jsonify({'history': history})
-
 
 @app.route('/api/predict', methods=['POST'])
 def predict_aqi():
@@ -71,9 +71,7 @@ def predict_aqi():
         return jsonify({'predicted_aqi': round(prediction)})
 
     except Exception as e:
-        print("❌ Prediction error:", str(e))
         return jsonify({'error': str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=5000)
