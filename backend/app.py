@@ -20,14 +20,15 @@ def get_aqi():
     if not city:
         return jsonify({'error': 'City parameter is missing'}), 400
 
-    geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={API_KEY}"
-    try:
-        geo_response = requests.get(geo_url)
-        geo_response.raise_for_status()
-        geo_data = geo_response.json()
+     try:
+     geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={API_KEY}"
+     geo_response = requests.get(geo_url)
+     geo_response.raise_for_status()
+     geo_data = geo_response.json()
 
-    if not geo_data or not isinstance(geo_data, list) or len(geo_data) == 0:
-    return jsonify({'error': f'City "{city}" not found'}), 404
+     if not geo_data or not isinstance(geo_data, list) or len(geo_data) == 0 or 'lat' not in geo_data[0]:
+     return jsonify({'error': f'City "{city}" not found'}), 404
+
 
     lat = geo_data[0].get('lat')
     lon = geo_data[0].get('lon')
