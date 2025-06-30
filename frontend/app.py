@@ -5,13 +5,18 @@ import plotly.express as px
 import folium
 from streamlit_folium import st_folium
 
+# Set up the Streamlit page
 st.set_page_config(page_title="Air Quality Visualizer", layout="wide")
-
-# Title
 st.title("🌍 Air Quality Visualizer and Forecast")
+
+# Backend URL
 backend_url = "https://air-quality-backend-7ys9.onrender.com"
 
-# Input Options
+# Initialize session state
+if 'aqi_data' not in st.session_state:
+    st.session_state.aqi_data = None
+
+# Input selection
 option = st.radio("Choose Input Type", ("City Name", "Latitude/Longitude"))
 
 if option == "City Name":
@@ -23,34 +28,20 @@ else:
     coords = {"lat": lat, "lon": lon}
     city = None
 
-
-# History Graph
-if st.button("📈 Show 7-day Historical AQI"):
-    try:
-        hist_response = requests.get(f"{backend_url}/api/history")
-        hist_response.raise_for_status()
-        hist_data = hist_response.json()['history']
-        df = pd.DataFrame(hist_data)
-        fig = px.line(df, x="date", y="aqi", title="📅 7-Day AQI History", markers=True)
-        st.plotly_chart(fig, use_container_width=True)
-    except Exception as e:# AQI Fetch with Session Persistence
-if 'aqi_data' not in st.session_state:
-    st.session_state.aqi_data = None
-
+# Fetch AQI data
 if st.button("🔍 Get Real-Time AQI"):
     try:
         if city:
             response = requests.get(f"{backend_url}/api/aqi", params={"city": city})
         else:
             response = requests.get(f"{backend_url}/api/aqi", params=coords)
-
         response.raise_for_status()
         st.session_state.aqi_data = response.json()
     except Exception as e:
         st.error(f"Failed to fetch AQI: {e}")
         st.session_state.aqi_data = None
 
-# Show AQI Results if Available
+# Display AQI results if available
 if st.session_state.aqi_data:
     aqi_data = st.session_state.aqi_data
     st.subheader("📌 AQI Information")
@@ -58,7 +49,6 @@ if st.session_state.aqi_data:
     st.write("Pollutants Breakdown:")
     st.json(aqi_data['components'])
 
-    # Show map
     if "lat" in aqi_data and "lon" in aqi_data:
         st.subheader("🗺️ Location")
         m = folium.Map(location=[aqi_data['lat'], aqi_data['lon']], zoom_start=10)
@@ -69,9 +59,19 @@ if st.session_state.aqi_data:
         ).add_to(m)
         st_folium(m, width=700, height=500)
 
+# Show historical AQI graph
+if st.button("📈 Show 7-day Historical AQI"):
+    try:
+        hist_response = requests.get(f"{backend_url}/api/history")
+        hist_response.raise_for_status()
+        hist_data = hist_response.json()['history']
+        df = pd.DataFrame(hist_data)
+        fig = px.line(df, x="date", y="aqi", title="📅 7-Day AQI History", markers=True)
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
         st.error(f"Error fetching historical data: {e}")
 
-# Custom Prediction
+# AQI Prediction Section
 st.markdown("---")
 st.header("🤖 Predict AQI with Custom Parameters")
 
