@@ -14,7 +14,7 @@ def get_aqi():
     city = request.args.get('city')
 
 # Get latitude and longitude from city name using OpenWeatherMap Geocoding API
-geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={API_KEY}"
+    geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={b48771cc44eb3963dc408c3759655e2a}"
 geo_response = requests.get(geo_url)
 geo_data = geo_response.json()
 
