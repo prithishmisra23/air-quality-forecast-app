@@ -35,12 +35,6 @@ if st.button("🔍 Get AQI"):
         st.error(f"Request error: {e}")
     except Exception as e:
         st.error(f"Unexpected error: {e}")
-# Display selected coordinates
-st.write(f"📍 Coordinates of {city}: {lat}, {lon}")
-
-# Show location on map
-m = folium.Map(location=[lat, lon], zoom_start=10)
-folium.Marker([lat, lon], popup=city).add_to(m)
 
 if st.button("📈 Show 7-day Historical Data"):
     try:
