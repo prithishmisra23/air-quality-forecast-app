@@ -39,13 +39,13 @@ def get_aqi():
         'lon': lon
     })
 
-    except requests.exceptions.RequestException as e:
+   except requests.exceptions.RequestException as e:
         print("❌ Network/API error:", str(e))
         return jsonify({'error': 'Failed to fetch AQI data', 'details': str(e)}), 500
+
     except Exception as e:
         print("❌ Unexpected error:", str(e))
         return jsonify({'error': 'Internal error', 'details': str(e)}), 500
-
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
