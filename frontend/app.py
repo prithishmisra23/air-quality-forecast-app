@@ -23,35 +23,6 @@ else:
     coords = {"lat": lat, "lon": lon}
     city = None
 
-# AQI Fetch
-if st.button("🔍 Get Real-Time AQI"):
-    try:
-        if city:
-            response = requests.get(f"{backend_url}/api/aqi", params={"city": city})
-        else:
-            response = requests.get(f"{backend_url}/api/aqi", params=coords)
-
-        response.raise_for_status()
-        aqi_data = response.json()
-
-        st.subheader("📌 AQI Information")
-        st.metric("AQI Value", aqi_data['aqi'])
-        st.write("Pollutants Breakdown:")
-        st.json(aqi_data['components'])
-
-        # Show map
-        if "lat" in aqi_data and "lon" in aqi_data:
-            st.subheader("🗺️ Location")
-            m = folium.Map(location=[aqi_data['lat'], aqi_data['lon']], zoom_start=10)
-            folium.Marker(
-                [aqi_data['lat'], aqi_data['lon']],
-                tooltip="Monitoring Location",
-                popup=f"AQI: {aqi_data['aqi']}"
-            ).add_to(m)
-            st_folium(m, width=700, height=500)
-
-    except Exception as e:
-        st.error(f"Failed to fetch AQI: {e}")
 
 # History Graph
 if st.button("📈 Show 7-day Historical AQI"):
@@ -62,7 +33,42 @@ if st.button("📈 Show 7-day Historical AQI"):
         df = pd.DataFrame(hist_data)
         fig = px.line(df, x="date", y="aqi", title="📅 7-Day AQI History", markers=True)
         st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:# AQI Fetch with Session Persistence
+if 'aqi_data' not in st.session_state:
+    st.session_state.aqi_data = None
+
+if st.button("🔍 Get Real-Time AQI"):
+    try:
+        if city:
+            response = requests.get(f"{backend_url}/api/aqi", params={"city": city})
+        else:
+            response = requests.get(f"{backend_url}/api/aqi", params=coords)
+
+        response.raise_for_status()
+        st.session_state.aqi_data = response.json()
     except Exception as e:
+        st.error(f"Failed to fetch AQI: {e}")
+        st.session_state.aqi_data = None
+
+# Show AQI Results if Available
+if st.session_state.aqi_data:
+    aqi_data = st.session_state.aqi_data
+    st.subheader("📌 AQI Information")
+    st.metric("AQI Value", aqi_data['aqi'])
+    st.write("Pollutants Breakdown:")
+    st.json(aqi_data['components'])
+
+    # Show map
+    if "lat" in aqi_data and "lon" in aqi_data:
+        st.subheader("🗺️ Location")
+        m = folium.Map(location=[aqi_data['lat'], aqi_data['lon']], zoom_start=10)
+        folium.Marker(
+            [aqi_data['lat'], aqi_data['lon']],
+            tooltip="Monitoring Location",
+            popup=f"AQI: {aqi_data['aqi']}"
+        ).add_to(m)
+        st_folium(m, width=700, height=500)
+
         st.error(f"Error fetching historical data: {e}")
 
 # Custom Prediction
