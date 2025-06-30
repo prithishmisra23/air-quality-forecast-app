@@ -90,7 +90,29 @@ st_folium(m, width=700, height=500)
 
 if st.button("📡 Fetch AQI & Forecast"):
     try:
-        res = requests.get(f"https://air-quality-backend-7ys9.onrender.com/api/aqi?lat={lat}&lon={lon}")
+        # Ensure lat/lon are valid floats
+try:
+    lat = float(lat)
+    lon = float(lon)
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise ValueError("Invalid latitude or longitude")
+
+    res = requests.get(f"https://air-quality-backend-7ys9.onrender.com/api/aqi?lat={lat}&lon={lon}")
+    res.raise_for_status()
+    data = res.json()
+
+    st.subheader("✅ Current AQI")
+    st.metric("AQI", data['aqi'])
+    
+    # [Continue rest of your logic...]
+    
+    except ValueError as ve:
+    st.error(f"Invalid coordinates: {ve}")
+    except requests.exceptions.HTTPError as http_err:
+    st.error(f"HTTP Error: {http_err}")
+    except Exception as e:
+    st.error(f"Error fetching data: {e}")
+
         res.raise_for_status()
         data = res.json()
 
@@ -138,7 +160,7 @@ if st.button("📡 Fetch AQI & Forecast"):
 
 st.subheader("📉 Past 7 Days AQI Trend")
 
-history_res = requests.get(f"https://air-quality-backend-7ys9.onrender.com/api/history?lat={lat}&lon={lon}")
+history_res = requests.get(f"https://air-quality-backend-7ys9.onrender.com/api/history?lat={lat:.4f}&lon={lon:.4f}")
 history_data = history_res.json()["history"]
 
 dates = [item['date'] for item in history_data]
