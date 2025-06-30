@@ -24,7 +24,7 @@ if not geo_data:
 lat = geo_data[0]['lat']
 lon = geo_data[0]['lon']
 
-    url = f"https://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
+    url = f"https://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={b48771cc44eb3963dc408c3759655e2a}"
     try:
         response = requests.get(url)
         response.raise_for_status()  # This will raise an error if API fails
