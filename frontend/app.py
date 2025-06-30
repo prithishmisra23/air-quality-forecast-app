@@ -106,7 +106,8 @@ if st.button("📡 Fetch AQI & Forecast"):
         humidity = st.number_input("Humidity (%)", min_value=0.0, max_value=100.0, value=50.0, help="Enter humidity or leave default")
 
 
-        input_data = [[data['components']['pm2_5'], humidity, temp]]  # Now dynamic
+        input_data = [[humidity, temp, data['components']['pm2_5']]]
+
 
         prediction = model.predict(input_data)[0]
         st.success(f"Forecasted AQI: {int(prediction)}")
@@ -125,7 +126,9 @@ if st.button("📡 Fetch AQI & Forecast"):
         }
 
         df = pd.DataFrame([record])
-        df.to_csv("aqi_log.csv", mode='a', header=not pd.read_csv("aqi_log.csv").empty if os.path.exists("aqi_log.csv") else True, index=False)
+        header_needed = not os.path.exists("aqi_log.csv")
+        df.to_csv("aqi_log.csv", mode='a', header=header_needed, index=False)
+
 
         # st.success("📁 Data saved to aqi_log.csv")
 
