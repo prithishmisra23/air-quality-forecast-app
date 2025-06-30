@@ -17,15 +17,17 @@ model = load('model.pkl')
 def get_aqi():
     city = request.args.get('city')
 
-    # Geo API to get lat/lon
+    if not city:
+        return jsonify({'error': 'City parameter is missing'}), 400
+
     geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={API_KEY}"
     try:
         geo_response = requests.get(geo_url)
         geo_response.raise_for_status()
         geo_data = geo_response.json()
 
-        if not geo_data:
-            return jsonify({'error': 'Invalid city name or not found'}), 400
+        if not geo_data or not isinstance(geo_data, list) or 'lat' not in geo_data[0]:
+            return jsonify({'error': f'City "{city}" not found'}), 404
 
         lat = geo_data[0]['lat']
         lon = geo_data[0]['lon']
@@ -49,6 +51,7 @@ def get_aqi():
     except Exception as e:
         print("❌ Unexpected error:", str(e))
         return jsonify({'error': 'Internal error', 'details': str(e)}), 500
+
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
