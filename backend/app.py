@@ -44,7 +44,12 @@ def get_aqi():
         components = data['list'][0]['components']
         aqi = data['list'][0]['main']['aqi']
 
-        return jsonify({'aqi': aqi, 'components': components})
+        return jsonify({
+    'aqi': aqi,
+    'components': components,
+    'lat': lat,
+    'lon': lon
+})
 
     except requests.exceptions.RequestException as e:
         print("❌ Network/API error:", str(e))
