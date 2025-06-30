@@ -13,43 +13,31 @@ API_KEY = "b48771cc44eb3963dc408c3759655e2a"
 # Load model once at startup
 model = load('model.pkl')
 
-
 @app.route('/api/aqi', methods=['GET'])
 def get_aqi():
     city = request.args.get('city')
-
     if not city:
-        return jsonify({'error': 'City parameter is missing'}), 400
+        return jsonify({'error': 'City is required'}), 400
 
-    try:
-        geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={API_KEY}"
-        geo_response = requests.get(geo_url)
-        geo_response.raise_for_status()
-        geo_data = geo_response.json()
+    # Geocode to get coordinates
+    location = geolocator.geocode(city)
+    if not location:
+        return jsonify({'error': 'Invalid city name'}), 400
 
-        if not geo_data or not isinstance(geo_data, list) or len(geo_data) == 0 or 'lat' not in geo_data[0]:
-            return jsonify({'error': f'City "{city}" not found'}), 404
+    lat = location.latitude
+    lon = location.longitude
 
-        lat = geo_data[0]['lat']
-        lon = geo_data[0]['lon']
+    # Fetch AQI data using coordinates
+    aqi_data = fetch_current_aqi(lat, lon)
+    if not aqi_data:
+        return jsonify({'error': 'Could not fetch AQI data'}), 500
 
-        url = f"https://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
-        response = requests.get(url)
-        response.raise_for_status()
-
-        data = response.json()
-        if 'list' not in data or not data['list']:
-            return jsonify({'error': 'Invalid API response structure'}), 500
-
-        components = data['list'][0]['components']
-        aqi = data['list'][0]['main']['aqi']
-
-        return jsonify({
-    'aqi': aqi,
-    'components': components,
-    'lat': lat,
-    'lon': lon
-})
+    return jsonify({
+        'aqi': aqi_data['aqi'],
+        'components': aqi_data['components'],
+        'lat': lat,
+        'lon': lon
+    })
 
     except requests.exceptions.RequestException as e:
         print("❌ Network/API error:", str(e))
