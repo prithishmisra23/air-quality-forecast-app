@@ -12,8 +12,6 @@ backend_url = "https://air-quality-backend-7ys9.onrender.com"
 
 if st.button("🔍 Get AQI"):
     try:
-        if st.button("🔍 Get AQI"):
-    try:
         aqi_response = requests.get(f"{backend_url}/api/aqi", params={"city": city})
         aqi_response.raise_for_status()
         aqi_data = aqi_response.json()
@@ -38,6 +36,7 @@ if st.button("🔍 Get AQI"):
         st.error(f"Request error: {e}")
     except Exception as e:
         st.error(f"Unexpected error: {e}")
+
 
 if st.button("📈 Show 7-day Historical Data"):
     try:
