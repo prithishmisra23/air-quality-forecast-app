@@ -11,8 +11,18 @@ API_KEY = "b48771cc44eb3963dc408c3759655e2a"
 
 @app.route('/api/aqi', methods=['GET'])
 def get_aqi():
-    lat = request.args.get('lat')
-    lon = request.args.get('lon')
+    city = request.args.get('city')
+
+# Get latitude and longitude from city name using OpenWeatherMap Geocoding API
+geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={API_KEY}"
+geo_response = requests.get(geo_url)
+geo_data = geo_response.json()
+
+if not geo_data:
+    return jsonify({'error': 'Invalid city name or not found'}), 400
+
+lat = geo_data[0]['lat']
+lon = geo_data[0]['lon']
 
     url = f"https://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
     try:
