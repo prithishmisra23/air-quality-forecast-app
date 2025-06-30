@@ -3,35 +3,38 @@ from flask_cors import CORS
 import requests
 import datetime
 import random
-from joblib import load  # Moved to top
+from joblib import load
 
 app = Flask(__name__)
 CORS(app)
 
 API_KEY = "b48771cc44eb3963dc408c3759655e2a"
 
+# Load model once at startup
+model = load('model/model.pkl')
+
 @app.route('/api/aqi', methods=['GET'])
 def get_aqi():
     city = request.args.get('city')
 
-    # Get latitude and longitude from city name using OpenWeatherMap Geocoding API
+    # Geo API to get lat/lon
     geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={API_KEY}"
-    geo_response = requests.get(geo_url)
-    geo_data = geo_response.json()
-
-    if not geo_data:
-        return jsonify({'error': 'Invalid city name or not found'}), 400
-
-    lat = geo_data[0]['lat']
-    lon = geo_data[0]['lon']
-
-    url = f"https://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
     try:
+        geo_response = requests.get(geo_url)
+        geo_response.raise_for_status()
+        geo_data = geo_response.json()
+
+        if not geo_data:
+            return jsonify({'error': 'Invalid city name or not found'}), 400
+
+        lat = geo_data[0]['lat']
+        lon = geo_data[0]['lon']
+
+        url = f"https://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
         response = requests.get(url)
         response.raise_for_status()
 
         data = response.json()
-
         if 'list' not in data or not data['list']:
             return jsonify({'error': 'Invalid API response structure'}), 500
 
@@ -40,9 +43,12 @@ def get_aqi():
 
         return jsonify({'aqi': aqi, 'components': components})
 
+    except requests.exceptions.RequestException as e:
+        print("❌ Network/API error:", str(e))
+        return jsonify({'error': 'Failed to fetch AQI data', 'details': str(e)}), 500
     except Exception as e:
-        print("❌ Error fetching AQI data:", str(e))
-        return jsonify({'error': 'API fetch failed', 'details': str(e)}), 500
+        print("❌ Unexpected error:", str(e))
+        return jsonify({'error': 'Internal error', 'details': str(e)}), 500
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
@@ -63,10 +69,11 @@ def predict_aqi():
         humidity = data.get('humidity', 70)
         temp = data.get('temp', 30)
 
-        model = load('model/model.pkl')
         prediction = model.predict([[pm2_5, humidity, temp]])[0]
         return jsonify({'predicted_aqi': round(prediction)})
+
     except Exception as e:
+        print("❌ Prediction error:", str(e))
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
