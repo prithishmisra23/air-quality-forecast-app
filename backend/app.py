@@ -13,7 +13,7 @@ CORS(app)
 model = joblib.load("model.pkl")
 
 # Your OpenWeatherMap API key
-API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"
+API_KEY = "b48771cc44eb3963dc408c3759655e2a"
 
 # Sample 7-day AQI history data
 aqi_history = [
