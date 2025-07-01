@@ -1,3 +1,5 @@
+# app.py (Flask Backend)
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
@@ -9,18 +11,19 @@ import numpy as np
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app) # Enable CORS for communication with your Streamlit frontend
 
-API_KEY = "b48771cc44eb3963dc408c3759655e2a" # Consider loading from environment variable for production
+API_KEY = "b48771cc44eb3963dc408c3759655e2a" # IMPORTANT: Consider loading this from environment variables for production!
 
 # Load ML model
 try:
-    # Ensure model.pkl is in the same directory as this script, or provide a full path
-    model = joblib.load("model.pkl")
-    print("✅ ML model loaded successfully.")
+    # --- FIX: Model loading path adjusted to 'model/model.pkl' ---
+    # Ensure the 'model' directory exists and 'model.pkl' is inside it relative to app.py
+    model = joblib.load("model/model.pkl")
+    print("✅ ML model loaded successfully from model/model.pkl.")
 except Exception as e:
-    print(f"❌ Failed to load model.pkl: {e}. The /api/predict endpoint will not work.")
-    model = None # Set to None if loading fails
+    print(f"❌ Failed to load model/model.pkl: {e}. The /api/predict endpoint will not work.")
+    model = None # Set to None if loading fails, so the endpoint can return an error
 
 # Real-Time AQI Endpoint
 @app.route("/api/aqi", methods=["GET"])
@@ -29,14 +32,15 @@ def get_aqi():
     lat = request.args.get("lat")
     lon = request.args.get("lon")
 
+    # If city is provided, try to get coordinates
     if city:
-        # ✅ Use hardcoded coordinates for Delhi
+        # Special handling for Delhi to use hardcoded coordinates (as per your original logic)
         if city.lower() == "delhi":
             lat, lon = 28.6139, 77.2090
         else:
-            geolocator = Nominatim(user_agent="aqi_app")
+            geolocator = Nominatim(user_agent="aqi_app", timeout=10) # Added timeout
             try:
-                location = geolocator.geocode(city, timeout=10)
+                location = geolocator.geocode(city)
             except Exception as e:
                 # Log the error for server-side debugging
                 print(f"Geocoding error for city '{city}': {e}")
@@ -45,11 +49,12 @@ def get_aqi():
                 return jsonify({"error": f"City '{city}' not found."}), 404
             lat, lon = location.latitude, location.longitude
 
+    # If coordinates are available (either from city lookup or directly provided)
     if lat and lon:
         url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
         try:
             res = requests.get(url)
-            res.raise_for_status()
+            res.raise_for_status() # Raises HTTPError for 4xx/5xx responses
             data = res.json()
         except requests.exceptions.RequestException as e:
             # Log the error for server-side debugging
@@ -63,7 +68,7 @@ def get_aqi():
             return jsonify({"error": "No AQI data found for the given coordinates."}), 404
 
         aqi = data["list"][0]["main"]["aqi"]
-        components = data["list"][0].get("components", {})
+        components = data["list"][0].get("components", {}) # Use .get() for safety
 
         return jsonify({
             "lat": float(lat),
@@ -79,12 +84,12 @@ def get_aqi():
 @app.route("/api/history", methods=["GET"])
 def get_history():
     city = request.args.get("city")
-    if not city: # If no city provided, default to Delhi (as per previous logic)
+    if not city: # If no city provided, default to Delhi
         city = "Delhi"
 
-    geolocator = Nominatim(user_agent="aqi_app")
+    geolocator = Nominatim(user_agent="aqi_app", timeout=10) # Added timeout
     try:
-        location = geolocator.geocode(city, timeout=10) # Added timeout
+        location = geolocator.geocode(city)
     except Exception as e:
         print(f"Geocoding error for city '{city}' (history): {e}")
         return jsonify({"error": f"Geocoding error for '{city}': {e}"}), 500
@@ -95,19 +100,16 @@ def get_history():
     history_data = []
 
     # OpenWeatherMap history API works with 'start' and 'end' UNIX timestamps.
-    # To get daily average, we need to request for specific periods.
-    # The current implementation gets data for the first hour of each day.
-    # If you need a full day's average, you'd need to fetch more data points
-    # within the day and average them. For simplicity, keeping the existing logic
-    # but acknowledging it only takes one hour's data.
-
+    # The current implementation fetches data for the first hour of each day.
+    # If you need a full day's average, you would need to fetch more data points
+    # within the day and average them out.
     for i in range(7):
         # Go back 'i+1' days from current UTC time
         date_utc = datetime.utcnow() - timedelta(days=i + 1)
         # Get timestamp for the beginning of the day (UTC)
         dt_start = int(date_utc.replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
-        # Get timestamp for one hour later (or end of day if you want average)
-        dt_end = dt_start + 3600 # Fetches data for the first hour of the day
+        # Get timestamp for one hour later. This gets a single data point for the day.
+        dt_end = dt_start + 3600
 
         url = f"http://api.openweathermap.org/data/2.5/air_pollution/history?lat={lat}&lon={lon}&start={dt_start}&end={dt_end}&appid={API_KEY}"
         try:
@@ -133,37 +135,41 @@ def get_history():
     # Return data from oldest to newest for plotting
     return jsonify(history_data[::-1])
 
+# AQI Prediction Endpoint
 @app.route('/api/predict', methods=['POST'])
 def predict():
     if model is None:
         return jsonify({"error": "ML model not loaded. Prediction is unavailable."}), 503
 
     data = request.get_json()
-    # Define the expected features for your model prediction
-    # Ensure these keys match exactly what your model was trained on
-    # and what the frontend sends.
-    required_features = ["pm25", "pm10", "no2", "so2", "co", "o3"] # Removed 'no' and 'nh3' as per frontend's prior payload
-                                                                # If your model needs them, you MUST add them here and in frontend
+    # --- FIX: Updated required_features to match your model's training data ---
+    required_features = ["pm2_5", "humidity", "temperature"]
+    
     features_dict = {}
     for feature in required_features:
         try:
-            # Get the value from the incoming JSON, convert to float
+            # Get the value from the incoming JSON payload, convert to float
             val = float(data.get(feature))
             features_dict[feature] = val
         except (TypeError, ValueError):
-            return jsonify({"error": f"Missing or invalid value for '{feature}' in prediction request."}), 400
+            # Return a 400 Bad Request error if a required feature is missing or invalid
+            return jsonify({"error": f"Missing or invalid value for '{feature}' in prediction request. Expected features: {', '.join(required_features)}"}), 400
 
     try:
-        # Create a DataFrame with the correct feature names and order
+        # Create a Pandas DataFrame from the received features for model input
+        # Ensure the column names in the DataFrame match what your model expects
         features_df = pd.DataFrame([features_dict])
         prediction = model.predict(features_df)[0]
-        return jsonify({"prediction": round(prediction, 2)}) # Changed 'predicted_aqi' to 'prediction'
+        # Return the prediction. The key 'prediction' must match what frontend expects.
+        return jsonify({"prediction": round(prediction, 2)})
     except Exception as e:
         print(f"[ERROR] Prediction failed: {e}")
-        # More specific error for prediction failure due to model input
-        return jsonify({"error": f"Prediction failed due to model error: {str(e)}"}), 500
+        # Return a 500 Internal Server Error if prediction itself fails
+        return jsonify({"error": f"Prediction failed due to internal model error: {str(e)}"}), 500
 
+# Main execution block
 if __name__ == "__main__":
-    # Use 0.0.0.0 for external access in Docker/Render, or 127.0.0.1 for local
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    # Use 0.0.0.0 to make the Flask app accessible externally (e.g., in Docker or Render)
+    # Use 127.0.0.1 (localhost) if only running on your local machine
+    port = int(os.environ.get("PORT", 5000)) # Use environment variable for port (e.g., for Render) or default to 5000
+    app.run(host="0.0.0.0", port=port, debug=True) # debug=True is good for development, disable in production
