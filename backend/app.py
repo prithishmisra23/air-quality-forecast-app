@@ -111,6 +111,7 @@ def get_history():
 def predict():
     try:
         data = request.get_json()
+        print("📥 Input received:", data)
 
         if not data:
             return jsonify({'error': 'No input data received'}), 400
@@ -126,14 +127,20 @@ def predict():
             data.get('O3', 0)
         ]
 
+        print("🧠 Features:", features)
+
         global model
         if model is None:
             model = joblib.load('model.pkl')
+            print("✅ Model loaded.")
 
         prediction = model.predict([features])[0]
+        print("🔮 Prediction:", prediction)
+
         return jsonify({'aqi': float(prediction)})
 
     except Exception as e:
+        print("❌ Error:", str(e))
         return jsonify({'error': str(e)}), 500
 
         
