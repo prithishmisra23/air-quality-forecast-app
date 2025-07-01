@@ -133,25 +133,30 @@ with col_pred3:
 # Button to trigger AQI prediction
 if st.button("📊 Predict AQI (AI Model)"):
     try:
-        # --- FIX: Construct the payload for the prediction request ---
-        # The keys here MUST EXACTLY match the `required_features` in your Flask backend
-        # and the features your model was trained on.
         payload = {
-            "pm2_5": pm2_5_val, # Note the underscore here to match your model's feature name
+            "pm2_5": pm2_5_val,
             "humidity": humidity_val,
             "temperature": temperature_val
         }
-        
-        # Send a POST request to the prediction endpoint with the JSON payload
-        pred_response = requests.post(f"{backend_url}/api/predict", json=payload)
-        pred_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
-        
-        # Parse the JSON response from the backend
-        pred = pred_response.json()
-        
-        # Access the prediction value using the key 'prediction' from backend
-        st.session_state.aqi_prediction = f"Predicted AQI: {pred.get('prediction', 'N/A')}"
+        st.write("📤 Sending the following data to backend for prediction:")
+        st.json(payload)
 
+        pred_response = requests.post(f"{backend_url}/api/predict", json=payload)
+        pred_response.raise_for_status()
+        pred = pred_response.json()
+
+        st.write("📥 Received response from backend:")
+        st.json(pred)
+
+        if "prediction" in pred:
+            st.session_state.aqi_prediction = f"Predicted AQI: {pred['prediction']}"
+        else:
+            st.session_state.aqi_prediction = f"❌ Prediction key missing in response: {pred}"
+
+    except requests.exceptions.RequestException as e:
+        st.session_state.aqi_prediction = f"Prediction failed (Network/API Error): {e}. Please check backend server and URL."
+    except Exception as e:
+        st.session_state.aqi_prediction = f"Prediction failed (Unexpected Error): {e}"
     except requests.exceptions.RequestException as e:
         st.session_state.aqi_prediction = f"Prediction failed (Network/API Error): {e}. Please check backend server and URL."
     except Exception as e:
