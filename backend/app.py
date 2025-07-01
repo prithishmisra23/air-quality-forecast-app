@@ -17,12 +17,12 @@ API_KEY = "b48771cc44eb3963dc408c3759655e2a" # IMPORTANT: Consider loading this 
 
 # Load ML model
 try:
-    # --- FIX: Model loading path adjusted to 'model/model.pkl' ---
+    # --- FIX: Model loading path adjusted to 'model.pkl' ---
     # Ensure the 'model' directory exists and 'model.pkl' is inside it relative to app.py
-    model = joblib.load("model/model.pkl")
-    print("✅ ML model loaded successfully from model/model.pkl.")
+    model = joblib.load("model.pkl")
+    print("✅ ML model loaded successfully from model.pkl.")
 except Exception as e:
-    print(f"❌ Failed to load model/model.pkl: {e}. The /api/predict endpoint will not work.")
+    print(f"❌ Failed to load model.pkl: {e}. The /api/predict endpoint will not work.")
     model = None # Set to None if loading fails, so the endpoint can return an error
 
 # Real-Time AQI Endpoint
