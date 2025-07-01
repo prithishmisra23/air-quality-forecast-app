@@ -72,8 +72,8 @@ if st.session_state.aqi_data:
     4: "Poor",
     5: "Very Poor"
 }
-   aqi_number = aqi_data.get('aqi', 'N/A')
-   aqi_label = aqi_scale.get(aqi_number, "Unknown")
+aqi_number = aqi_data.get('aqi', 'N/A')
+aqi_label = aqi_scale.get(aqi_number, "Unknown")
    st.metric("Current AQI Value", f"{aqi_number} ({aqi_label})")
    st.write("Pollutants Breakdown (μg/m³):")
    st.json(aqi_data.get('components', {})) # Use .get for safe access, provide empty dict if not found
