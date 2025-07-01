@@ -126,18 +126,15 @@ def predict():
             data.get('O3', 0)
         ]
 
-        # Load model only once if not already loaded
         global model
         if model is None:
-            model = joblib.load('aqi_model.pkl')
+            model = joblib.load('model.pkl')
 
         prediction = model.predict([features])[0]
         return jsonify({'aqi': float(prediction)})
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-
 
         
 if __name__ == "__main__":
