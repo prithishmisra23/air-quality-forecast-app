@@ -111,15 +111,16 @@ def get_history():
 def predict():
     data = request.get_json()
     try:
-        features = [
-            float(data.get("pm25")),
-            float(data.get("pm10")),
-            float(data.get("no2")),
-            float(data.get("so2")),
-            float(data.get("co")),
-            float(data.get("o3"))
-        ]
-        prediction = model.predict(np.array([features]))[0]  # FIXED
+         features = pd.DataFrame([{
+    "pm25": float(data.get("pm25")),
+    "pm10": float(data.get("pm10")),
+    "no2": float(data.get("no2")),
+    "so2": float(data.get("so2")),
+    "co": float(data.get("co")),
+    "o3": float(data.get("o3"))
+    }])
+        prediction = model.predict(features)[0]
+
         return jsonify({"prediction": round(prediction, 2)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
