@@ -142,31 +142,27 @@ def predict():
         return jsonify({"error": "ML model not loaded. Prediction is unavailable."}), 503
 
     data = request.get_json()
-    # --- FIX: Updated required_features to match your model's training data ---
     required_features = ["pm2_5", "humidity", "temperature"]
-    
+
     features_dict = {}
     for feature in required_features:
         try:
-            # Get the value from the incoming JSON payload, convert to float
             val = float(data.get(feature))
             features_dict[feature] = val
         except (TypeError, ValueError):
-            # Return a 400 Bad Request error if a required feature is missing or invalid
-            return jsonify({"error": f"Missing or invalid value for '{feature}' in prediction request. Expected features: {', '.join(required_features)}"}), 400
+            return jsonify({"error": f"Missing or invalid value for '{feature}'"}), 400
 
     try:
-        # Create a Pandas DataFrame from the received features for model input
-        # Ensure the column names in the DataFrame match what your model expects
         features_df = pd.DataFrame([features_dict])
+        print(f"📦 Incoming JSON: {data}")
+        print(f"🧪 DataFrame sent to model:\n{features_df}")
         prediction = model.predict(features_df)[0]
-        # Return the prediction. The key 'prediction' must match what frontend expects.
+        print(f"✅ Prediction result: {prediction}")
         return jsonify({"prediction": round(prediction, 2)})
     except Exception as e:
         print(f"[ERROR] Prediction failed: {e}")
-        # Return a 500 Internal Server Error if prediction itself fails
-        return jsonify({"error": f"Prediction failed due to internal model error: {str(e)}"}), 500
-
+        return jsonify({"error": f"Prediction failed: {str(e)}"}), 500
+        
 # Main execution block
 if __name__ == "__main__":
     # Use 0.0.0.0 to make the Flask app accessible externally (e.g., in Docker or Render)
