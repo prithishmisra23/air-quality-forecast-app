@@ -65,7 +65,16 @@ if st.button("🔍 Get Real-Time AQI"):
 if st.session_state.aqi_data:
     aqi_data = st.session_state.aqi_data
     st.subheader("📌 Real-Time AQI Information")
-    st.metric("Current AQI Value", aqi_data.get('aqi', 'N/A')) # Use .get for safe access
+    aqi_scale = {
+    1: "Good",
+    2: "Fair",
+    3: "Moderate",
+    4: "Poor",
+    5: "Very Poor"
+}
+aqi_number = aqi_data.get('aqi', 'N/A')
+aqi_label = aqi_scale.get(aqi_number, "Unknown")
+st.metric("Current AQI Value", f"{aqi_number} ({aqi_label})")
     st.write("Pollutants Breakdown (μg/m³):")
     st.json(aqi_data.get('components', {})) # Use .get for safe access, provide empty dict if not found
 
