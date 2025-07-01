@@ -109,42 +109,20 @@ def get_history():
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
+    data = request.get_json()
     try:
-        data = request.get_json()
-        print("📥 Input received:", data)
-
-        if not data:
-            return jsonify({'error': 'No input data received'}), 400
-
         features = [
-            data.get('PM2.5', 0),
-            data.get('PM10', 0),
-            data.get('NO', 0),
-            data.get('NO2', 0),
-            data.get('NH3', 0),
-            data.get('CO', 0),
-            data.get('SO2', 0),
-            data.get('O3', 0)
+            float(data.get("pm25")),
+            float(data.get("pm10")),
+            float(data.get("no2")),
+            float(data.get("so2")),
+            float(data.get("co")),
+            float(data.get("o3"))
         ]
-
-        print("🧠 Features:", features)
-
-        global model
-        if model is None:
-            model = joblib.load('model.pkl')
-            print("✅ Model loaded.")
-
-        import numpy as np
-        ...
-        prediction = model.predict(np.array([features]))[0]
-        print("🔮 Prediction:", prediction)
-
-        return jsonify({'aqi': float(prediction)})
-
+        prediction = model.predict(np.array([features]))[0]  # FIXED
+        return jsonify({"prediction": round(prediction, 2)})
     except Exception as e:
-        print("❌ Error:", str(e))
-        return jsonify({'error': str(e)}), 500
-
+        return jsonify({"error": str(e)}), 500
         
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
