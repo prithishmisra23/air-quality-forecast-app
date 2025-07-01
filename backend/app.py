@@ -28,10 +28,13 @@ def get_aqi():
     lat = request.args.get("lat")
     lon = request.args.get("lon")
 
-    if city:
+   if city:
+    if city.lower() == "delhi":
+        lat, lon = 28.6139, 77.2090  # Delhi coordinates
+    else:
         geolocator = Nominatim(user_agent="aqi_app")
         try:
-            location = geolocator.geocode(city)
+            location = geolocator.geocode(city, timeout=10)
         except Exception as e:
             return jsonify({"error": f"Geocoding error: {e}"}), 500
         if not location:
@@ -123,8 +126,10 @@ def predict():
             data.get('o3', 0)
         ]
 
-        prediction = model.predict([features])[0]
-        return jsonify({'predicted_aqi': float(prediction)})
+        prediction =
+model.predict([features])[0]
+        return jsonify({'predicted_aqi': 
+float(prediction)})
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
