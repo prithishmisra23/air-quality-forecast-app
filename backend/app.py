@@ -134,7 +134,9 @@ def predict():
             model = joblib.load('model.pkl')
             print("✅ Model loaded.")
 
-        prediction = model.predict([features])[0]
+        import numpy as np
+        ...
+        prediction = model.predict(np.array([features]))[0]
         print("🔮 Prediction:", prediction)
 
         return jsonify({'aqi': float(prediction)})
