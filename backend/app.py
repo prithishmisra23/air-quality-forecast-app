@@ -103,29 +103,28 @@ def get_history():
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
+    global model
+    if model is None:
+        return jsonify({'error': 'Model not loaded'}), 500
+
     try:
         data = request.get_json()
-        
-        # Check if data exists
         if not data:
             return jsonify({'error': 'No input data received'}), 400
 
-        # Extract features in correct order
         features = [
-            data.get('PM2.5', 0),
-            data.get('PM10', 0),
-            data.get('NO', 0),
-            data.get('NO2', 0),
-            data.get('NH3', 0),
-            data.get('CO', 0),
-            data.get('SO2', 0),
-            data.get('O3', 0)
+            data.get('pm2_5', 0),
+            data.get('pm10', 0),
+            data.get('no', 0),
+            data.get('no2', 0),
+            data.get('nh3', 0),
+            data.get('co', 0),
+            data.get('so2', 0),
+            data.get('o3', 0)
         ]
 
-        # Load model and predict
-        model = joblib.load('aqi_model.pkl')
         prediction = model.predict([features])[0]
-        return jsonify({'aqi': float(prediction)})
+        return jsonify({'predicted_aqi': float(prediction)})
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
